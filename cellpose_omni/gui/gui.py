@@ -84,7 +84,7 @@ for path,file in zip(test_images,files):
         download_url_to_file('https://github.com/kevinjohncutler/omnipose/blob/main/docs/test_files/'+file+'?raw=true',
                                 path, progress=True)
 PRELOAD_IMAGE = str(test_images[-1])
-DEFAULT_MODEL = 'bact_phase_omni'
+DEFAULT_MODEL = 'omnipose_250108'#'bact_phase_omni'
 
 
 from omnipose.utils import sinebow
@@ -932,9 +932,8 @@ class MainW(QMainWindow):
         self.ModelChoose.setFont(self.smallfont)
         self.ModelChoose.setCurrentIndex(current_index)
         self.ModelChoose.activated.connect(self.model_choose)
-        
         self.l0.addWidget(self.ModelChoose, b, TOOLBAR_WIDTH//2,1,TOOLBAR_WIDTH-TOOLBAR_WIDTH//2)
-
+        self.NetAvg.setCurrentIndex(1) #SZ: 'run 1 net' by default
 
         label = QLabel('model:')
         label.setStyleSheet(label_style)
@@ -2245,6 +2244,9 @@ class MainW(QMainWindow):
             # make sure 2-channel models are initialized correctly
             if self.current_model in models.C2_MODEL_NAMES:
                 self.nchan = 2
+                self.ChanNumber.setText(str(self.nchan))
+            if self.current_model in models.ELF_MODEL_NAMES: #SZ: our models use 1 channel
+                self.nchan = 1
                 self.ChanNumber.setText(str(self.nchan))
 
             # ensure that the boundary/nclasses is set correctly

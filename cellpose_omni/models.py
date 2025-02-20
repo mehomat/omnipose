@@ -32,6 +32,9 @@ _MODEL_URL = 'https://www.cellpose.org/models'
 _MODEL_DIR_ENV = os.environ.get("CELLPOSE_LOCAL_MODELS_PATH")
 _MODEL_DIR_DEFAULT = pathlib.Path.home().joinpath('.cellpose', 'models')
 MODEL_DIR = pathlib.Path(_MODEL_DIR_ENV) if _MODEL_DIR_ENV else _MODEL_DIR_DEFAULT
+_ELF_MODEL_DIR = '/crex/proj/uppstore2018129/elflab/Misc/UNets/CellSegmentation'
+ELF_MODEL_DIR = _ELF_MODEL_DIR if os.path.isdir(_ELF_MODEL_DIR) else ''
+_ELF_MODEL_URL = 'http://silpion.icm.uu.se/models'
 
 if OMNI_INSTALLED:
     import omnipose
@@ -43,11 +46,15 @@ else:
 CP_MODELS = ['cyto','nuclei','cyto2']
 C2_MODEL_NAMES = C2_BD_MODELS + C2_MODELS + CP_MODELS
 BD_MODEL_NAMES = C2_BD_MODELS + C1_BD_MODELS
-MODEL_NAMES = C1_MODELS + C2_BD_MODELS + C1_BD_MODELS + C2_MODELS + CP_MODELS
+ELF_MODEL_NAMES = ['omnipose_250108'] #SZ
+MODEL_NAMES = C1_MODELS + C2_BD_MODELS + C1_BD_MODELS + C2_MODELS + CP_MODELS + ELF_MODEL_NAMES
 
 def model_path(model_type, model_index, use_torch):
-    torch_str = 'torch' if use_torch else ''
-    basename = '%s%s_%d' % (model_type, torch_str, model_index)
+    if model_type in ELF_MODEL_NAMES:
+        basename = model_type
+    else:
+        torch_str = 'torch' if use_torch else ''
+        basename = '%s%s_%d' % (model_type, torch_str, model_index)
     return cache_model_path(basename)
 
 def size_model_path(model_type, use_torch):
@@ -57,12 +64,20 @@ def size_model_path(model_type, use_torch):
 
 def cache_model_path(basename):
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    url = f'{_MODEL_URL}/{basename}'
     cached_file = os.fspath(MODEL_DIR.joinpath(basename)) 
     if not os.path.exists(cached_file):
-        models_logger.info('Downloading: "{}" to {}\n'.format(url, cached_file))
-        print(url,cached_file)
-        utils.download_url_to_file(url, cached_file, progress=True)
+        src = f'{_ELF_MODEL_DIR}/{basename}'
+        if os.path.isfile(src):
+            models_logger.info('Copying: "{}" to {}\n'.format(src, cached_file))
+            shutil.copyfile(src, cached_file)
+        else:
+            if basename in ELF_MODEL_NAMES:
+                url = f'{_ELF_MODEL_URL}/{basename}'
+            else:
+                url = f'{_MODEL_URL}/{basename}'
+            models_logger.info('Downloading: "{}" to {}\n'.format(url, cached_file))
+            print(url,cached_file)
+            utils.download_url_to_file(url, cached_file, progress=True)
     return cached_file
 
 def deprecation_warning_cellprob_dist_threshold(cellprob_threshold, dist_threshold):
