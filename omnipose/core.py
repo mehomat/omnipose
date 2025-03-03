@@ -1343,9 +1343,10 @@ def compute_masks(dP, dist, affinity_graph=None, bd=None, p=None, coords=None, i
         else:
             if (omni and SKIMAGE_ENABLED) or override:
                 if verbose:
-                    omnipose_logger.info('Using hysteresis threshold.')
+                    t0 = time.time()
                 iscell = filters.apply_hysteresis_threshold(dist, mask_threshold-1, mask_threshold) # good for thin features
-
+                if verbose:
+                    omnipose_logger.info('Hysteresis threshold of dist image {} execution time {:.2f} sec'.format(dist.shape,time.time()-t0))
             else:
                 iscell = dist > mask_threshold # analog to original iscell=(cellprob>cellprob_threshold)
     
@@ -1375,7 +1376,11 @@ def compute_masks(dP, dist, affinity_graph=None, bd=None, p=None, coords=None, i
                 # dP_ *= (1-utils.rescale(dist))
                 
                 # this is the winner I think 
+                if verbose:
+                    t0=time.time()
                 dP_ = div_rescale(dP,iscell) / rescale ##### omnipose.core.div_rescale
+                if verbose:
+                    omnipose_logger.info('Suppress execution time {:.2f} sec'.format(time.time()-t0))
                 # dP_ /= np.clip(dist,1,np.inf) # this is a problem in some places, 06/13/2023
             else:
                 dP_ = dP.copy()/5.
@@ -1550,21 +1555,28 @@ def compute_masks(dP, dist, affinity_graph=None, bd=None, p=None, coords=None, i
         
         # need to reconsider this for self-contact... ended up just disabling with hole size 0
         # print('dd',iscell_pad.shape,labels.shape)
+        if verbose:
+            t0=time.time()
         masks = fill_holes_and_remove_small_masks(labels, min_size=min_size, max_size=max_size, ##### utils.fill_holes_and_remove_small_masks
-                                                 hole_size=hole_size, dim=dim)*iscell_pad 
+                                                 hole_size=hole_size, dim=dim)#*iscell_pad force hole filling in cells
+        if verbose:
+            omnipose_logger.info('Mask postprocessing execution time: {:.2f} sec'.format(time.time()-t0))
         # masks = labels
         # Resize mask, semantic or instance 
         resize_pad = np.array([r+2*pad for r in resize]) if resize is not None else labels.shape
         if tuple(resize_pad)!=labels.shape:
             if verbose:
                 omnipose_logger.info(f'resizing output with resize = {resize_pad}')
+                t0=time.time()
+                shape0=masks.shape
             # mask = resize_image(mask, resize[0], resize[1], interpolation=cv2.INTER_NEAREST).astype(np.int32) 
             ratio = np.array(resize_pad)/np.array(labels.shape)
             masks = zoom(masks, ratio, order=0).astype(np.int32) 
             iscell_pad = masks>0
             dt_pad = zoom(dt_pad, ratio, order=1)
             dP_pad = zoom(dP_pad, np.concatenate([[1],ratio]), order=1) # for boundary 
-            
+            if verbose:
+                omnipose_logger.info('Resize from {} to {} execution time: {:.2f} sec'.format(shape0,resize_pad,time.time()-t0))
             # affinity_seg not compatible with rescaling after euler integration
             # would need to upscale predcitons first 
             if verbose and affinity_seg:
@@ -1789,6 +1801,7 @@ def get_masks(p, bd, dist, mask, inds, nclasses=2,cluster=False,
     # number of points or taking time to upscale/downscale the data. Users can toggle cluster on manually or
     # by setting the diameter threshold higher than the average diameter of the cells. 
     if verbose:
+        t0=time.time()
         omnipose_logger.info('Mean diameter is %f'%d)
 
     if d <= diam_threshold: #diam_threshold needs to change for 3D
@@ -1907,7 +1920,7 @@ def get_masks(p, bd, dist, mask, inds, nclasses=2,cluster=False,
         mask[cell_px] = labels[new_px]
         
     if verbose:
-        omnipose_logger.info('Done finding masks.')
+        omnipose_logger.info(f'Done finding masks in {time.time()-t0:.2f} s.')
     return mask, labels
 
 
@@ -2058,6 +2071,7 @@ def follow_flows(dP, dist, inds, niter=None, interp=True, use_gpu=True,
     """
     if verbose:
         omnipose_logger.info(f'niter: {niter}, interp: {interp}, suppress: {suppress}, calc_trace: {calc_trace}')
+        t0=time.time()
     
     if niter is None:
         niter = 200
@@ -2101,7 +2115,7 @@ def follow_flows(dP, dist, inds, niter=None, interp=True, use_gpu=True,
     
     p = final_points.squeeze().cpu().numpy()
     if verbose:
-        omnipose_logger.info('done follow_flows')
+        omnipose_logger.info(f'done follow_flows in {time.time()-t0:.2f}s')
     return p, inds, tr
 
 def remove_bad_flow_masks(masks, flows, coords=None, affinity_graph=None, threshold=0.4, use_gpu=False, device=None, omni=True):
@@ -2833,10 +2847,10 @@ def fill_holes_and_remove_small_masks(masks, min_size=None, max_size=None, hole_
             if (min_size > 0) and (too_small or too_big):
                 masks[slc][msk] = 0
             elif fill_holes:   
-                hsz = np.count_nonzero(msk)*hole_size/100 #turn hole size into percentage
                 #eventually the boundary output should be used to properly exclude real holes vs label gaps
                 # for not I just toggle it off 
-                if SKIMAGE_ENABLED: # Omnipose version (passes 2D tests)
+                if 0:#SKIMAGE_ENABLED: # Omnipose version (passes 2D tests)
+                    hsz = np.count_nonzero(msk)*hole_size/100 #turn hole size into percentage
                     pad = 1
                     unpad = tuple([slice(pad,-pad)]*dim) 
                     padmsk = remove_small_holes(np.pad(msk,pad,mode='constant'),area_threshold=hsz)

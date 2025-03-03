@@ -1236,7 +1236,27 @@ class CellposeModel(UnetModel):
                 anisotropy=1.0, do_3D=False, stitch_threshold=0.0,
                 omni=False, calc_trace=False,  show_progress=True, verbose=False, pad=0):
         
-        
+        """
+        #check parameters
+        models_logger.info('compute_masks = {}'.format(compute_masks))
+        models_logger.info('normalize = {}'.format(normalize))
+        models_logger.info('rescale = {}'.format(rescale))
+        models_logger.info('resample = {}'.format(resample))
+        models_logger.info('tile = {}'.format(tile))
+        models_logger.info('diam_threshold = {}'.format(diam_threshold))
+        models_logger.info('niter = {}'.format(niter))
+        models_logger.info('flow_factor = {}'.format(flow_factor))
+        models_logger.info('min_size = {}'.format(min_size))
+        models_logger.info('max_size = {}'.format(max_size))
+        models_logger.info('interp = {}'.format(interp))
+        models_logger.info('cluster = {}'.format(cluster))
+        models_logger.info('suppress = {}'.format(suppress))
+        models_logger.info('boundary_seg = {}'.format(boundary_seg))
+        models_logger.info('affinity_seg = {}'.format(affinity_seg))
+        models_logger.info('despur = {}'.format(despur))
+        models_logger.info('omni = {}'.format(omni))
+        models_logger.info('calc_trace = {}'.format(calc_trace))
+        """
         # by this point, the image(s) will already have been formatted with channels, batch, etc 
 
         tic = time.time()
@@ -1309,12 +1329,16 @@ class CellposeModel(UnetModel):
                     else:
                         img = zoom(img,rescale,order=1)
                         
-                # inherited from Unet 
+                # inherited from Unet
+                if verbose:
+                    t0=time.time()
                 yf, style = self._run_nets(img, net_avg=net_avg,
                                            augment=augment, tile=tile,
                                            normalize=normalize, 
                                            tile_overlap=tile_overlap, 
                                            bsize=bsize)
+                if verbose:
+                    models_logger.info('Unet GPU execution time {:.2f} sec'.format(time.time()-t0))
                 # unpadding 
                 yf = yf[unpad+(Ellipsis,)]
                 
@@ -1325,8 +1349,12 @@ class CellposeModel(UnetModel):
                     # for k in range(yf.shape[-1]):
                     #     print('a',shape[1:1+self.dim]/np.array(yf.shape[:-1]))
                     # ND version actually gives better results than CV2 in some places. 
+                    if verbose:
+                        t0=time.time()
                     yf = np.stack([zoom(yf[...,k], shape[1:1+self.dim]/np.array(yf.shape[:-1]), order=1) 
                                    for k in range(yf.shape[-1])],axis=-1)
+                    if verbose:
+                        models_logger.info('Resampling execution time {:.2f} sec'.format(time.time()-t0))
                     # scipy.ndimage.affine_transform(A, np.linalg.inv(M), output_shape=tyx,
                 
                 if self.nclasses>1:
@@ -1347,7 +1375,7 @@ class CellposeModel(UnetModel):
         styles = styles.squeeze()
         
         net_time = time.time() - tic
-        if nimg > 1:
+        if verbose:#nimg > 1:
             models_logger.info('network run in %2.2fs'%(net_time))
 
         if compute_masks:
@@ -1468,12 +1496,12 @@ class CellposeModel(UnetModel):
                 tr = np.array(tr)
                 affinity = np.array(affinity)
 
-                if stitch_threshold > 0 and nimg > 1:
+                if stitch_threshold > 0 and verbose:#nimg > 1:
                     models_logger.info(f'stitching {nimg} planes using stitch_threshold={stitch_threshold:0.3f} to make 3D masks')
                     masks = utils.stitch3D(masks, stitch_threshold=stitch_threshold)
             
             flow_time = time.time() - tic
-            if nimg > 1:
+            if verbose:#nimg > 1:
                 models_logger.info('masks created in %2.2fs'%(flow_time))
             
             ret = [masks, styles, dP, cellprob, p, bd, tr, affinity, bounds]
