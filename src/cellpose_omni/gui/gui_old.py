@@ -200,7 +200,9 @@ class MainW(QMainWindow):
         # geometry that works on mac and ubuntu at least 
         Y = int(925 - (25*dpi*pxr)/24)
         self.setGeometry(100, 100, min(1200,size.width()),  min(Y,size.height())) 
-
+        self.Lx=min(1200,size.height())
+        self.Ly=min(Y,size.height())
+        
         # self.showMaximized()
         self.setWindowTitle("Omnipose GUI")
         self.cp_path = os.path.dirname(os.path.realpath(__file__))
@@ -2380,7 +2382,7 @@ class MainW(QMainWindow):
         # needed to be replaced with recompute_masks
         # rerun = False
         have_enough_px = self.probslider.value() > self.cellprob # slider moves up
-        print('debug',have_enough_px,self.probslider.value(),self.cellprob)
+        #print('debug',have_enough_px,self.probslider.value(),self.cellprob)
         
         # update thresholds
         self.threshold, self.cellprob = self.get_thresholds()
@@ -2471,14 +2473,15 @@ class MainW(QMainWindow):
             # self.neighbors = augmented_affinity[:self.dim]
             # self.affinity_graph = augmented_affinity[self.dim] need to cnvert indexing to update the full affinity
             # or just flatten the spatial affinity 
-            coords = np.nonzero(self.masks) 
-            self.bounds = core.affinity_to_boundary(self.masks, self.affinity_graph, coords)
-            
-            # for the pruposes of the GUI, we may want to store the affinity graph as a
-            # (8,Y,X) array rather than a (9,N) array... unless N is always the same size 
-            
-            # slicing is probably going to be a lot easier if we use the spatial affinity format 
-            self.spatial_affinity = core.spatial_affinity(self.affinity_graph, self.coords, self.shape)
+            if self.AffinityCheck.isChecked():
+                coords = np.nonzero(self.masks)
+                self.bounds = core.affinity_to_boundary(self.masks, self.affinity_graph, coords)
+                # for the pruposes of the GUI, we may want to store the affinity graph as a
+                # (8,Y,X) array rather than a (9,N) array... unless N is always the same size
+                # slicing is probably going to be a lot easier if we use the spatial affinity format
+                self.spatial_affinity = core.spatial_affinity(self.affinity_graph, self.coords, self.shape)
+            else:
+                self.bounds = bounds
             
             # self.neighbors = core.get_neighbors(self.spatial_affinity, self.meshgrid, self.shape)
             # self.meshgrid = misc.meshgrid(self.shape)
@@ -2487,7 +2490,7 @@ class MainW(QMainWindow):
             # self.steps, self.inds, self.idx, self.fact, self.sign = utils.kernel_setup(self.dim)
             # self.non_self = np.array(list(set(np.arange(len(self.steps)))-{self.inds[0][0]})) 
 
-            print('\n\nassgin the affinity tot he main one here \n')
+            #print('\n\nassgin the affinity tot he main one here \n')
         
         self.masksOn = True
         self.MCheckBox.setChecked(True)
@@ -2638,7 +2641,6 @@ class MainW(QMainWindow):
             
             
             affinity = flows[-2]
-            print(len(affinity))
             if not len(affinity):
                 # if the affinity graph is returned empty, we can just recompute it
                 self.initialize_seg(compute_affinity=True)
@@ -2653,7 +2655,7 @@ class MainW(QMainWindow):
             
             
             
-            print('run assign here too')
+            #print('run assign here too')
 
             if not do_3D:
                 masks = masks[np.newaxis,...]
