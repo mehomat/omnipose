@@ -782,9 +782,11 @@ def affinity_to_boundary(masks,affinity_graph,coords):
     dim = masks.ndim       
     csum = np.sum(affinity_graph,axis=0)
     boundary = np.logical_and(csum<(3**dim-1),csum>0) # check this latter condition
-    bd_matrix = np.zeros(masks.shape,int)
-    bd_matrix[tuple(coords)] = boundary 
-    
+    if boundary.shape == masks.shape:
+        return boundary
+    else:
+        bd_matrix = np.zeros(masks.shape,int)
+        bd_matrix[tuple(coords)] = boundary
     return bd_matrix
     
 def spatial_affinity(affinity_graph, coords, shape):
