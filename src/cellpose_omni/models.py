@@ -47,7 +47,7 @@ else:
 CP_MODELS = ['cyto','nuclei','cyto2']
 C2_MODEL_NAMES = C2_BD_MODELS + C2_MODELS + CP_MODELS
 BD_MODEL_NAMES = C2_BD_MODELS + C1_BD_MODELS
-ELF_MODEL_NAMES = ['omnipose_250108'] #SZ
+ELF_MODEL_NAMES = ['omnipose_250108','omnipose_250919','omnipose_251022'] #SZ
 MODEL_NAMES = C1_MODELS + C2_BD_MODELS + C1_BD_MODELS + C2_MODELS + CP_MODELS + ELF_MODEL_NAMES
 
 def model_path(model_type, model_index, use_torch):

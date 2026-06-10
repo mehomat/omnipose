@@ -97,7 +97,7 @@ def run(image=PRELOAD_IMAGE):
     sync_theme_with_system()
 
     end_time = time.time()  # Record end time
-    print(f"Total Time: {end_time - start_time:.4f} seconds")
+    #print(f"Total Time: {end_time - start_time:.4f} seconds")
 
     app.installEventFilter(win)
     ret = app.exec()
@@ -107,7 +107,6 @@ def run(image=PRELOAD_IMAGE):
 class MainW(QMainWindow):
     def __init__(self, size, dpi, pxr, clipboard, image=None):
         start_time = time.time()  # Record start time
-
         super(MainW, self).__init__()
         
         # Dict mapping { module_name: last_mtime }
@@ -116,7 +115,7 @@ class MainW(QMainWindow):
         self.class_sources = {}   # maps (module_name, class_name) to the class's source code
         # Discover & load all submodules
         self.modules = self.load_all_submodules()
-        print('modules',self.modules)
+        #print('modules',self.modules)
         self.patch_all_submodules()
         
         
@@ -232,7 +231,7 @@ class MainW(QMainWindow):
         self.show()
         
         end_time = time.time()  # Record end time
-        print(f"Init Time: {end_time - start_time:.4f} seconds")
+        #print(f"Init Time: {end_time - start_time:.4f} seconds")
         
 
 
@@ -275,7 +274,7 @@ class MainW(QMainWindow):
                 mod_path = os.path.join(os.path.dirname(submodules.__file__), mod_name + ".py")
                 if os.path.exists(mod_path):
                     self.module_mtimes[mod_name] = self.get_mtime(mod_path)
-                    print(f"🔄 Tracking {mod_name}: {self.module_mtimes[mod_name]}")
+                    #print(f"🔄 Tracking {mod_name}: {self.module_mtimes[mod_name]}")
                 else:
                     print(f"⚠️ Module file not found: {mod_path}")
 
@@ -364,14 +363,14 @@ class MainW(QMainWindow):
                     print(f"Source unchanged for {old_cls.__name__}; skipping update for instance '{field_name}'.")
                     continue
 
-                print(f"Updating instance '{field_name}' of class {old_cls.__name__}: {id(old_cls)} -> {id(new_cls)}")
+                #print(f"Updating instance '{field_name}' of class {old_cls.__name__}: {id(old_cls)} -> {id(new_cls)}")
                    # Update the instance’s class pointer:
                 for method_name, new_method in new_cls.__dict__.items():
                     if callable(new_method):
                         try:
                             bound_method = new_method.__get__(instance, new_cls)
                             setattr(instance, method_name, bound_method)
-                            print(f"  Updated {field_name}.{method_name}")
+                            #print(f"  Updated {field_name}.{method_name}")
                         except Exception as e:
                             print(f"  Failed to update {field_name}.{method_name}: {e}")
                 
@@ -468,7 +467,7 @@ class MainW(QMainWindow):
                     # Register its modification time using its file path.
                     mod_path = os.path.join(base_dir, fname)
                     self.module_mtimes[mod_name] = self.get_mtime(mod_path)
-                    print(f"Loaded additional module: {full_name}")
+                    #print(f"Loaded additional module: {full_name}")
                 except Exception as e:
                     print(f"Error loading module {fname}: {e}")
         return loaded

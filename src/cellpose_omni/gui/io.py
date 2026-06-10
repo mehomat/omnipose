@@ -46,7 +46,7 @@ def read_image_with_channel_axis(filename):
         print(f"Warning: could not load metadata for {filename}: {e}")
         meta = {}
     
-    print('image shape', img.shape)
+    #print('image shape', img.shape)
     # Check if the image is grayscale saved as RGB
 
     if 'axes' in meta:

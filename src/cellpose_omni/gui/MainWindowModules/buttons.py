@@ -689,6 +689,8 @@ def make_buttons(self):
     self.ModelChoose.setCurrentIndex(current_index)
     self.ModelChoose.activated.connect(lambda: self.model_choose())
     # self.ModelChoose.activated.connect(lambda idx: self.model_choose(idx))
+    self.NetAvg.setCurrentIndex(1) #SZ: 'run 1 net' by default
+
     
     
     self.l0.addWidget(self.ModelChoose, b, TOOLBAR_WIDTH//2,1,TOOLBAR_WIDTH-TOOLBAR_WIDTH//2)
@@ -916,4 +918,4 @@ def make_buttons(self):
     # self.l0.setMaximumWidth(100)
     # self.ScaleOn.setChecked(False)  # can only toggle off after make_viewbox is called 
 
-    print('buttons',b)
+    #print('buttons',b)

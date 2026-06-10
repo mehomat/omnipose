@@ -78,7 +78,6 @@ def get_model_path(self):
 def initialize_model(self):
     self.get_model_path()
 
-
     if self.current_model in models.MODEL_NAMES:
 
         # make sure 2-channel models are initialized correctly
