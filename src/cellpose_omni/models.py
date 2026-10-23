@@ -33,7 +33,7 @@ _MODEL_URL = 'https://raw.githubusercontent.com/kevinjohncutler/omnipose-models/
 _MODEL_DIR_ENV = os.environ.get("CELLPOSE_LOCAL_MODELS_PATH") # in case you set your own path in .zshrc etc.  
 _MODEL_DIR_DEFAULT = pathlib.Path.home().joinpath('.cellpose', 'models')
 MODEL_DIR = pathlib.Path(_MODEL_DIR_ENV) if _MODEL_DIR_ENV else _MODEL_DIR_DEFAULT
-_ELF_MODEL_DIR = '/gorilla/proj/elflab-storage/elflab/Misc/UNets/CellSegmentation'
+_ELF_MODEL_DIR = '/gorilla/proj/elflab-storage/backup/Misc/UNets/CellSegmentation'
 ELF_MODEL_DIR = _ELF_MODEL_DIR if os.path.isdir(_ELF_MODEL_DIR) else ''
 _ELF_MODEL_URL = 'http://silpion.icm.uu.se/models'
 
