@@ -63,8 +63,48 @@ from .gpu import torch_GPU, torch_CPU, ARM
 from sklearn.neighbors import NearestNeighbors
 SKLEARN_ENABLED = True 
 
-from dbscan import DBSCAN as new_DBSCAN # much faster 
+from dbscan import DBSCAN as new_DBSCAN # much faster
 import gc
+import multiprocessing as mp
+
+
+def _new_DBSCAN_child(X, eps, min_samples, conn):
+    labels, _ = new_DBSCAN(X, eps=eps, min_samples=min_samples)
+    conn.send(labels)
+    conn.close()
+
+
+def safe_DBSCAN(X, eps, min_samples):
+    """Run the fast `dbscan` package in a forked child process.
+
+    The `dbscan` C++ backend can abort the whole process (std::terminate,
+    'internal error: scheduler queue overflow') on some inputs. That cannot be
+    caught with try/except, so it is isolated in a child process; if the child
+    dies, fall back to sklearn's DBSCAN.
+    """
+    try:
+        ctx = mp.get_context('fork')
+    except ValueError:  # 'fork' unavailable (e.g. Windows): run in-process
+        labels, _ = new_DBSCAN(X, eps=eps, min_samples=min_samples)
+        return labels
+
+    rx, tx = ctx.Pipe(duplex=False)
+    p = ctx.Process(target=_new_DBSCAN_child, args=(X, eps, min_samples, tx))
+    p.start()
+    tx.close()
+    try:
+        labels = rx.recv()
+    except EOFError:  # child died before sending labels
+        labels = None
+    p.join()
+    rx.close()
+
+    if labels is None or p.exitcode != 0:
+        omnipose_logger.warning('dbscan package crashed (exit code {}); '
+                                'falling back to sklearn DBSCAN.'.format(p.exitcode))
+        from sklearn.cluster import DBSCAN
+        labels = DBSCAN(eps=eps, min_samples=min_samples).fit_predict(X)
+    return labels
 
 try:
     from hdbscan import HDBSCAN
@@ -1922,8 +1962,9 @@ def get_masks(p, bd, dist, mask, inds, nclasses=2,cluster=False,
             # clusterer = hdbscan.HDBSCAN(min_cluster_size=min_samples)
             # labels = clusterer.fit_predict(newinds)
         else:
-            labels, _ = new_DBSCAN(newinds, eps=eps, min_samples=min_samples)
-            
+            # new_DBSCAN can hard-abort the process; safe_DBSCAN isolates it
+            # and falls back to sklearn DBSCAN if it crashes
+            labels = safe_DBSCAN(newinds, eps=eps, min_samples=min_samples)
 
 
         # filter out small clusters
